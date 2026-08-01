@@ -205,6 +205,54 @@ test.describe('Transactions', () => {
     await expect(page).toMatchThemeScreenshots();
   });
 
+  test('creates a new category while entering a transaction', async () => {
+    await accountPage.addNewTransactionButton.click();
+
+    const categoryCell = accountPage.newTransactionRow.getByTestId('category');
+    await categoryCell.click();
+    await categoryCell
+      .getByRole('textbox')
+      .pressSequentially('Streaming Services');
+
+    const createButton = page.getByTestId('create-category-button');
+    await expect(createButton).toContainText('Create category');
+    await expect(createButton).toContainText('Streaming Services');
+    await expect(createButton).toContainText('Misc');
+
+    await createButton.click();
+    // Move off the cell so it renders the committed value, not the input.
+    await page.keyboard.press('Tab');
+
+    await expect(categoryCell).toContainText('Streaming Services');
+
+    // The category now exists like any other, grouped under "Misc", and is no
+    // longer offered for creation.
+    await accountPage.addNewTransactionButton.click();
+    const nextCategoryCell = accountPage.newTransactionRow
+      .first()
+      .getByTestId('category');
+    await nextCategoryCell.click();
+    await nextCategoryCell
+      .getByRole('textbox')
+      .pressSequentially('Streaming Services');
+
+    await expect(
+      page.getByTestId('Streaming Services-category-item'),
+    ).toBeVisible();
+    await expect(page.getByTestId('Misc-category-item-group')).toBeVisible();
+    await expect(page.getByTestId('create-category-button')).toHaveCount(0);
+  });
+
+  test('does not offer to create a category that already exists', async () => {
+    await accountPage.addNewTransactionButton.click();
+
+    const categoryCell = accountPage.newTransactionRow.getByTestId('category');
+    await categoryCell.click();
+    await categoryCell.getByRole('textbox').pressSequentially('Food');
+
+    await expect(page.getByTestId('create-category-button')).toHaveCount(0);
+  });
+
   test('creates a split test transaction', async () => {
     await accountPage.createSplitTransaction([
       {
